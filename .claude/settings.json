@@ -2,7 +2,11 @@
   "permissions": {
     "allow": [
       "Bash(ls \"D:/SourceFast/coolify_linux/app.augmenter.pro/frontend/src/app/\\(authenticated\\)\")",
-      "Bash(npm install next-themes sonner)"
+      "Bash(npm install next-themes sonner)",
+      "WebFetch(domain:www.smule.com)",
+      "WebFetch(domain:www.yousician.com)",
+      "WebFetch(domain:moises.ai)",
+      "WebFetch(domain:www.singsharp.com)"
     ]
   }
 }
