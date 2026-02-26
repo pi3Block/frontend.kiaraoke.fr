@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(ls \"D:/SourceFast/coolify_linux/app.augmenter.pro/frontend/src/app/\\(authenticated\\)\")"
+    ]
+  }
+}
