@@ -30,10 +30,13 @@ No test framework is configured yet (no vitest/jest).
 
 - **Next.js 15.2** (App Router, `output: "standalone"` for containerized deployment)
 - **React 19** + TypeScript 5.7 (strict mode)
-- **Tailwind CSS v4** (via `@tailwindcss/postcss`, `@import "tailwindcss"` syntax)
+- **Tailwind CSS v4** (via `@tailwindcss/postcss`, `@import "tailwindcss"` syntax) + **tw-animate-css** (Radix animations)
+- **shadcn/ui** (style "new-york", `components.json` configured, `npx shadcn@latest add <component>`)
+- **next-themes** (dark/light mode via `.dark` class, default dark, system detection)
+- **sonner** (toast notifications, theme-aware via `<Toaster />` in root layout)
 - **Zustand 5** (state management with granular selector hooks)
 - **Framer Motion 12** (animations, landing page)
-- **Radix UI** (shadcn-style primitives: Slider, ScrollArea, Slot)
+- **Radix UI** (shadcn primitives: Slider, ScrollArea, Slot, Progress)
 - **lucide-react** (icons)
 - **Web Audio API** (custom multi-track player, no external audio lib)
 
@@ -84,7 +87,8 @@ src/
 ├── components/
 │   ├── sections/           # Landing page sections (hero, how-it-works, tech-stack, recent-performances)
 │   ├── layout/footer.tsx   # Site footer
-│   ├── ui/                 # shadcn components (button, card, slider, progress, scroll-area, badge)
+│   ├── theme-provider.tsx   # next-themes ThemeProvider wrapper ("use client")
+│   ├── ui/                 # shadcn components (button, card, slider, progress, scroll-area, badge, sonner)
 │   ├── app/                # Interactive: TrackSearch, YouTubePlayer, PitchIndicator, LandscapeRecordingLayout
 │   └── lyrics/             # LyricsDisplayPro, LyricLine, KaraokeWord, LyricsControls, TimelineDebug
 ├── types/
@@ -121,7 +125,8 @@ Virtualization: only ±100 lines around the active line are fully rendered; dist
 - **`"use client"` boundaries** — interactive components declare `"use client"`, server components are pure layout/metadata.
 - **Path aliases** — `@/*` → `./src/*`, also `@components/*`, `@stores/*`, `@hooks/*`, `@api/*`.
 - **Mobile-first** — `touch-manipulation` + `active:scale-95` on buttons; landscape detection triggers split-view overlay; `env(safe-area-inset-*)` for notches.
-- **Dark theme only** — CSS variables set for dark mode in `:root` (oklch color space). No light mode toggle.
+- **Dark/light theme** — oklch CSS variables in `:root` (light) and `.dark` (dark). Default is dark. Managed by `next-themes` (`ThemeProvider` in root layout). Use `useTheme()` hook to access/toggle.
+- **Toasts** — use `import { toast } from "sonner"` then `toast.success()`, `toast.error()`, etc. The `<Toaster />` is mounted in root layout.
 
 ## Environment Variables
 
