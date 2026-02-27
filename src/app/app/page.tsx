@@ -1059,10 +1059,7 @@ export default function AppPage() {
           )}
 
           {/* Center zone: left content + right lyrics */}
-          <div className={cn(
-            "flex min-h-0 overflow-hidden transition-all duration-300 ease-in-out",
-            mixerOpen ? "flex-none h-[200px]" : "flex-1"
-          )}>
+          <div className="flex flex-1 min-h-0 overflow-hidden">
             {/* LEFT — main content zone */}
             <div className="flex-1 min-w-0 overflow-y-auto p-4 flex flex-col gap-3">
               {/* Video (preparing / downloading / ready / recording) */}
