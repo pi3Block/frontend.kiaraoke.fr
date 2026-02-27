@@ -529,8 +529,25 @@ export default function AppPage() {
 
         if (response.reference_status === "needs_fallback") {
           setStatus("needs_fallback");
-        } else {
-          setStatus("preparing");
+          return;
+        }
+
+        setStatus("preparing");
+
+        // Immediately check if reference is already ready.
+        // startSession always returns reference_status="pending" (background task runs after response),
+        // but with Optimization A + cache HIT, the backend sets "ready" in Redis within ~100ms.
+        // This avoids showing "Préparation..." when the reference was already cached.
+        try {
+          const current = await api.getSessionStatus(response.session_id);
+          if (current.reference_status === "ready") {
+            setStatus("ready");
+          } else if (current.reference_status === "needs_fallback") {
+            setStatus("needs_fallback");
+          }
+          // Otherwise stay in "preparing" — SSE/polling will handle the transition
+        } catch {
+          // SSE/polling will handle the transition
         }
       } catch (err) {
         setError(
