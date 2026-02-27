@@ -559,16 +559,15 @@ export default function AppPage() {
     };
   }, []);
 
-  // Fallback: poll analysis status (only if SSE failed)
+  // Safety-net polling: ALWAYS poll during "analyzing" regardless of SSE.
+  // SSE may silently lose events (proxy buffering, Traefik, connection drops).
+  // Poll at 3s when SSE is active (safety net), 2s when SSE failed (primary).
   useEffect(() => {
-    if (
-      !usePollingFallback ||
-      !sessionId ||
-      status !== "analyzing" ||
-      !analysisTaskId
-    ) {
+    if (!sessionId || status !== "analyzing") {
       return;
     }
+
+    const pollInterval = usePollingFallback ? 2000 : 3000;
 
     const pollAnalysis = async () => {
       try {
@@ -594,15 +593,19 @@ export default function AppPage() {
       }
     };
 
-    const interval = setInterval(pollAnalysis, 2000);
-    pollAnalysis();
+    // Delay first poll slightly to let SSE deliver first if it can
+    const firstPollDelay = usePollingFallback ? 0 : 2000;
+    const firstPollTimeout = setTimeout(pollAnalysis, firstPollDelay);
+    const interval = setInterval(pollAnalysis, pollInterval);
 
-    return () => clearInterval(interval);
+    return () => {
+      clearTimeout(firstPollTimeout);
+      clearInterval(interval);
+    };
   }, [
     usePollingFallback,
     sessionId,
     status,
-    analysisTaskId,
     setAnalysisProgress,
     setResults,
     setError,
