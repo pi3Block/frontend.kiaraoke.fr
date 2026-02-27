@@ -12,6 +12,8 @@ interface TransportBarProps {
   onPause: () => void
   onStop: () => void
   onSeek: (time: number) => void
+  /** Override playing state from an external source (e.g. YouTube) */
+  isPlaying?: boolean
   /** Inline single-row layout for bottom bar */
   compact?: boolean
   className?: string
@@ -28,18 +30,20 @@ export function TransportBar({
   onPause,
   onStop,
   onSeek,
+  isPlaying: isPlayingOverride,
   compact = false,
   className,
 }: TransportBarProps) {
   const transport = useTransport()
+  const playing = isPlayingOverride ?? transport.playing
 
   const handlePlayPause = useCallback(() => {
-    if (transport.playing) {
+    if (playing) {
       onPause()
     } else {
       onPlay()
     }
-  }, [transport.playing, onPlay, onPause])
+  }, [playing, onPlay, onPause])
 
   const handleSeekChange = useCallback(
     (values: number[]) => {
@@ -105,9 +109,9 @@ export function TransportBar({
             'touch-manipulation active:scale-95',
             'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
           )}
-          aria-label={transport.playing ? 'Pause' : 'Lecture'}
+          aria-label={playing ? 'Pause' : 'Lecture'}
         >
-          {transport.playing ? (
+          {playing ? (
             <Pause className="h-4 w-4" />
           ) : (
             <Play className="h-4 w-4 ml-0.5" />
@@ -227,9 +231,9 @@ export function TransportBar({
             'touch-manipulation active:scale-95',
             'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2'
           )}
-          aria-label={transport.playing ? 'Pause' : 'Lecture'}
+          aria-label={playing ? 'Pause' : 'Lecture'}
         >
-          {transport.playing ? (
+          {playing ? (
             <Pause className="h-7 w-7 lg:h-5 lg:w-5" />
           ) : (
             <Play className="h-7 w-7 lg:h-5 lg:w-5 ml-1" />
