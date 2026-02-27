@@ -10,7 +10,7 @@
 import { useCallback, useEffect, useState, useRef } from "react";
 import { useSessionStore } from "@/stores/sessionStore";
 import { TrackSearch } from "@/components/app/TrackSearch";
-import { YouTubePlayer } from "@/components/app/YouTubePlayer";
+import { YouTubePlayer, type YouTubePlayerControls } from "@/components/app/YouTubePlayer";
 import { PitchIndicator } from "@/components/app/PitchIndicator";
 import { LyricsDisplayPro } from "@/components/lyrics/LyricsDisplayPro";
 import { LandscapeRecordingLayout } from "@/components/app/LandscapeRecordingLayout";
@@ -235,22 +235,107 @@ export default function AppPage() {
       status === "ready" || status === "recording" || status === "results",
   });
 
+  // YouTube player imperative controls (for TransportBar sync)
+  const [youtubeControls, setYoutubeControls] =
+    useState<YouTubePlayerControls | null>(null);
+
   const transport = useTransport();
   const masterVolume = useMasterVolume();
   const play = useAudioStore((s) => s.play);
   const pause = useAudioStore((s) => s.pause);
+  const stop = useAudioStore((s) => s.stop);
   const seek = useAudioStore((s) => s.seek);
+  const setCurrentTime = useAudioStore((s) => s.setCurrentTime);
+  const setDuration = useAudioStore((s) => s.setDuration);
   const setMasterVolume = useAudioStore((s) => s.setMasterVolume);
 
   useKeyboardShortcuts({
     enabled: status === "ready" || status === "results",
-    onPlayPause: () => (transport.playing ? pause() : play()),
-    onSeekBack: () => seek(Math.max(0, transport.currentTime - 10)),
-    onSeekForward: () =>
-      seek(Math.min(transport.duration, transport.currentTime + 10)),
+    onPlayPause: () => {
+      if (transport.playing) {
+        youtubeControls?.pause();
+        pause();
+      } else {
+        youtubeControls?.play();
+        play();
+      }
+    },
+    onSeekBack: () => {
+      const t = Math.max(0, transport.currentTime - 10);
+      youtubeControls?.seekTo(t);
+      seek(t);
+    },
+    onSeekForward: () => {
+      const t = Math.min(transport.duration, transport.currentTime + 10);
+      youtubeControls?.seekTo(t);
+      seek(t);
+    },
     onVolumeUp: () => setMasterVolume(Math.min(1, masterVolume + 0.05)),
     onVolumeDown: () => setMasterVolume(Math.max(0, masterVolume - 0.05)),
   });
+
+  // ── YouTube ↔ audioStore sync ──
+  // When YouTube is the active player (before StudioMode loads multi-track),
+  // sync YouTube state → audioStore so TransportBar displays correct time/duration.
+  const handleYoutubeTimeUpdate = useCallback(
+    (time: number) => {
+      setPlaybackTime(time);
+      // Sync to audioStore only when StudioMode tracks aren't loaded yet
+      if (!studioControls) {
+        setCurrentTime(time);
+      }
+    },
+    [setPlaybackTime, setCurrentTime, studioControls],
+  );
+
+  const handleYoutubeStateChange = useCallback(
+    (isPlaying: boolean) => {
+      setIsVideoPlaying(isPlaying);
+      if (!studioControls) {
+        if (isPlaying) play();
+        else pause();
+      }
+    },
+    [setIsVideoPlaying, studioControls, play, pause],
+  );
+
+  const handleYoutubeDurationChange = useCallback(
+    (duration: number) => {
+      if (!studioControls && duration > 0) {
+        setDuration(duration);
+      }
+    },
+    [studioControls, setDuration],
+  );
+
+  const handleYoutubeControlsReady = useCallback(
+    (controls: YouTubePlayerControls) => {
+      setYoutubeControls(controls);
+    },
+    [],
+  );
+
+  // Effective transport controls: studioControls (multi-track) > YouTube > null
+  const effectiveStudioControls: StudioTransportControls | null =
+    studioControls ??
+    (youtubeControls
+      ? {
+          play: async () => {
+            youtubeControls.play();
+          },
+          pause: () => {
+            youtubeControls.pause();
+          },
+          stop: () => {
+            youtubeControls.seekTo(0);
+            youtubeControls.pause();
+            stop();
+          },
+          seek: (time: number) => {
+            youtubeControls.seekTo(time);
+          },
+        }
+      : null);
 
   const [analysisTaskId, setAnalysisTaskId] = useState<string | null>(null);
   const mediaStreamRef = useRef<MediaStream | null>(null);
@@ -644,6 +729,7 @@ export default function AppPage() {
     setAnalysisTaskId(null);
     setAnalysisProgress(null);
     setStudioControls(null);
+    setYoutubeControls(null);
     reset();
     setStatus("selecting");
   }, [
@@ -853,8 +939,10 @@ export default function AppPage() {
                   <>
                     <YouTubePlayer
                       video={youtubeMatch}
-                      onTimeUpdate={setPlaybackTime}
-                      onStateChange={setIsVideoPlaying}
+                      onTimeUpdate={handleYoutubeTimeUpdate}
+                      onStateChange={handleYoutubeStateChange}
+                      onDurationChange={handleYoutubeDurationChange}
+                      onControlsReady={handleYoutubeControlsReady}
                     />
                     {status === "recording" && (
                       <PitchIndicator pitchData={pitchData} />
@@ -1077,7 +1165,7 @@ export default function AppPage() {
           <AppBottomBar
             status={status as "ready" | "recording" | "uploading" | "analyzing" | "results" | "idle" | "selecting" | "preparing" | "needs_fallback" | "downloading"}
             selectedTrack={selectedTrack}
-            studioControls={studioControls}
+            studioControls={effectiveStudioControls}
             recordingDuration={recordingDuration}
             onRecord={handleStartRecording}
             onStopRecording={handleStopRecording}
@@ -1114,8 +1202,10 @@ export default function AppPage() {
               {youtubeMatch && (
                 <YouTubePlayer
                   video={youtubeMatch}
-                  onTimeUpdate={setPlaybackTime}
-                  onStateChange={setIsVideoPlaying}
+                  onTimeUpdate={handleYoutubeTimeUpdate}
+                  onStateChange={handleYoutubeStateChange}
+                  onDurationChange={handleYoutubeDurationChange}
+                  onControlsReady={handleYoutubeControlsReady}
                 />
               )}
 
@@ -1151,8 +1241,10 @@ export default function AppPage() {
               {youtubeMatch && (
                 <YouTubePlayer
                   video={youtubeMatch}
-                  onTimeUpdate={setPlaybackTime}
-                  onStateChange={setIsVideoPlaying}
+                  onTimeUpdate={handleYoutubeTimeUpdate}
+                  onStateChange={handleYoutubeStateChange}
+                  onDurationChange={handleYoutubeDurationChange}
+                  onControlsReady={handleYoutubeControlsReady}
                 />
               )}
 
@@ -1202,8 +1294,10 @@ export default function AppPage() {
               {youtubeMatch && (
                 <YouTubePlayer
                   video={youtubeMatch}
-                  onTimeUpdate={setPlaybackTime}
-                  onStateChange={setIsVideoPlaying}
+                  onTimeUpdate={handleYoutubeTimeUpdate}
+                  onStateChange={handleYoutubeStateChange}
+                  onDurationChange={handleYoutubeDurationChange}
+                  onControlsReady={handleYoutubeControlsReady}
                 />
               )}
 
