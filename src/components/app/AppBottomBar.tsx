@@ -47,6 +47,10 @@ interface AppBottomBarProps {
   analysisProgress: AnalysisProgress | null;
   /** Override playing state for TransportBar (e.g. from YouTube) */
   isPlaying?: boolean;
+  /** Override current time for TransportBar (e.g. from YouTube) */
+  currentTime?: number;
+  /** Override duration for TransportBar (e.g. from YouTube) */
+  duration?: number;
 }
 
 function formatDuration(seconds: number): string {
@@ -66,6 +70,8 @@ export const AppBottomBar = memo(function AppBottomBar({
   onCancel,
   analysisProgress,
   isPlaying,
+  currentTime,
+  duration,
 }: AppBottomBarProps) {
   // Fallback direct sur l'audioStore si studioControls pas encore prêt (chargement async).
   // Les callbacks de studioControls proviennent du même store — fonctionnellement identiques.
@@ -100,6 +106,8 @@ export const AppBottomBar = memo(function AppBottomBar({
           onStop={effectiveControls.stop}
           onSeek={effectiveControls.seek}
           isPlaying={isPlaying}
+          currentTime={currentTime}
+          duration={duration}
           compact
           className="max-w-sm"
         />

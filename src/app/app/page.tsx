@@ -244,13 +244,14 @@ export default function AppPage() {
   const play = useAudioStore((s) => s.play);
   const pause = useAudioStore((s) => s.pause);
   const seek = useAudioStore((s) => s.seek);
-  const setCurrentTime = useAudioStore((s) => s.setCurrentTime);
-  const setDuration = useAudioStore((s) => s.setDuration);
   const setMasterVolume = useAudioStore((s) => s.setMasterVolume);
 
-  // Is YouTube the active video source? (visible in preparing/downloading/ready/recording)
+  // YouTube duration tracked locally — NOT synced to audioStore to avoid useMultiTrack conflicts
+  const [youtubeDuration, setYoutubeDuration] = useState(0);
+
+  // Is YouTube the active video source? (visible across all pre-results states)
   const youtubeActive =
-    ["preparing", "downloading", "ready", "recording"].includes(status) &&
+    ["preparing", "downloading", "ready", "recording", "uploading", "analyzing"].includes(status) &&
     !!youtubeControls;
 
   useKeyboardShortcuts({
@@ -271,9 +272,9 @@ export default function AppPage() {
       else seek(t);
     },
     onSeekForward: () => {
-      const dur = youtubeActive ? transport.duration : transport.duration;
+      const d = youtubeActive ? youtubeDuration : transport.duration;
       const cur = youtubeActive ? playbackTime : transport.currentTime;
-      const t = Math.min(dur, cur + 10);
+      const t = Math.min(d, cur + 10);
       if (youtubeActive) youtubeControls!.seekTo(t);
       else seek(t);
     },
@@ -281,17 +282,17 @@ export default function AppPage() {
     onVolumeDown: () => setMasterVolume(Math.max(0, masterVolume - 0.05)),
   });
 
-  // ── YouTube → audioStore sync ──
-  // Only sync time + duration to audioStore (for TransportBar slider).
-  // Do NOT sync play/pause — it would trigger useMultiTrack.syncPlayback and cause
-  // double audio when StudioMode has loaded tracks (e.g. cached reference).
-  // The playing state is passed separately via isPlaying prop.
+  // ── YouTube time sync ──
+  // Do NOT sync anything to audioStore (play/pause, currentTime, duration).
+  // Writing to audioStore.transport triggers useMultiTrack.syncPlayback which
+  // moves/plays multi-track audio elements → double audio fighting with YouTube.
+  // Instead, YouTube state is passed as override props to TransportBar.
   const handleYoutubeTimeUpdate = useCallback(
     (time: number) => {
       setPlaybackTime(time);
-      setCurrentTime(time);
+      // NOT calling setCurrentTime — that would trigger useMultiTrack.syncPlayback
     },
-    [setPlaybackTime, setCurrentTime],
+    [setPlaybackTime],
   );
 
   const handleYoutubeStateChange = useCallback(
@@ -306,10 +307,11 @@ export default function AppPage() {
   const handleYoutubeDurationChange = useCallback(
     (duration: number) => {
       if (duration > 0) {
-        setDuration(duration);
+        setYoutubeDuration(duration);
+        // NOT calling audioStore.setDuration — keep YouTube state isolated
       }
     },
-    [setDuration],
+    [],
   );
 
   const handleYoutubeControlsReady = useCallback(
@@ -734,6 +736,7 @@ export default function AppPage() {
     setAnalysisProgress(null);
     setStudioControls(null);
     setYoutubeControls(null);
+    setYoutubeDuration(0);
     reset();
     setStatus("selecting");
   }, [
@@ -1190,6 +1193,8 @@ export default function AppPage() {
             onCancel={handleCancel}
             analysisProgress={analysisProgress}
             isPlaying={youtubeActive ? isVideoPlaying : undefined}
+            currentTime={youtubeActive ? playbackTime : undefined}
+            duration={youtubeActive ? youtubeDuration : undefined}
           />
         </div>
       </div>
