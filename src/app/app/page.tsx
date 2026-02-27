@@ -1002,7 +1002,7 @@ export default function AppPage() {
             </div>
 
             {/* RIGHT — Lyrics column */}
-            <div className="w-[42%] min-w-[280px] max-w-[480px] border-l border-border/30 overflow-hidden flex flex-col">
+            <div className="w-[55%] min-w-[320px] border-l border-border/30 overflow-hidden flex flex-col">
               {lyricsStatus === "loading" && (
                 <div className="flex-1 flex items-center justify-center gap-2 text-muted-foreground text-sm">
                   <div className="w-4 h-4 border-2 border-muted-foreground border-t-transparent rounded-full animate-spin" />
