@@ -71,7 +71,7 @@ export const AppBottomBar = memo(function AppBottomBar({
   const audioStop = useAudioStore((s) => s.stop);
   const audioSeek = useAudioStore((s) => s.seek);
   const effectiveControls: StudioTransportControls = studioControls ?? {
-    play: audioPlay,
+    play: async () => { audioPlay(); },
     pause: audioPause,
     stop: audioStop,
     seek: audioSeek,

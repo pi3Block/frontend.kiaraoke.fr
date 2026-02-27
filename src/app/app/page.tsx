@@ -207,6 +207,11 @@ export default function AppPage() {
     resetRecording,
   } = useAudioRecorder({
     onError: (err) => setError(`Erreur micro: ${err.message}`),
+    // Le stream est fourni ici dès qu'il est prêt — évite un double getUserMedia
+    onStreamReady: (stream) => {
+      mediaStreamRef.current = stream;
+      startPitchAnalysis(stream);
+    },
   });
 
   const {
@@ -578,16 +583,8 @@ export default function AppPage() {
 
   const handleStartRecording = useCallback(async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        audio: {
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: true,
-        },
-      });
-      mediaStreamRef.current = stream;
-
-      startPitchAnalysis(stream);
+      // startAudioRecording appelle getUserMedia en interne,
+      // puis déclenche onStreamReady → startPitchAnalysis + mediaStreamRef
       await startAudioRecording();
       setStatus("recording");
     } catch (err) {
@@ -597,7 +594,7 @@ export default function AppPage() {
           : "Impossible de démarrer l'enregistrement",
       );
     }
-  }, [startAudioRecording, startPitchAnalysis, setStatus, setError]);
+  }, [startAudioRecording, setStatus, setError]);
 
   const handleStopRecording = useCallback(async () => {
     if (!sessionId) return;
@@ -837,6 +834,13 @@ export default function AppPage() {
         <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
           {/* Slim track banner */}
           <TrackBannerSlim track={selectedTrack} onReset={handleReset} />
+
+          {/* Error banner — desktop */}
+          {error && (
+            <div className="shrink-0 mx-4 mt-2 bg-destructive/20 border border-destructive/60 rounded-lg px-3 py-2 text-destructive-foreground text-sm text-center truncate">
+              {error}
+            </div>
+          )}
 
           {/* Center zone: left content + right lyrics */}
           <div className="flex flex-1 min-h-0 overflow-hidden">
