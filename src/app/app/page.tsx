@@ -1331,6 +1331,20 @@ export default function AppPage() {
                     />
                   </div>
 
+                  {/* Warnings */}
+                  {Array.isArray(results.warnings) && results.warnings.length > 0 && (
+                    <div className="space-y-2">
+                      {results.warnings.map((warning: string, i: number) => (
+                        <div
+                          key={i}
+                          className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg px-3 py-2 text-xs text-yellow-300"
+                        >
+                          {warning}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
                   {/* Auto-sync info */}
                   {results.auto_sync && results.auto_sync.confidence > 0.3 && (
                     <div className="text-center text-xs text-muted-foreground">
@@ -1738,6 +1752,20 @@ export default function AppPage() {
                 <ScoreCard label="Rythme" value={results.rhythm_accuracy} />
                 <ScoreCard label="Paroles" value={results.lyrics_accuracy} />
               </div>
+
+              {/* Warnings */}
+              {Array.isArray(results.warnings) && results.warnings.length > 0 && (
+                <div className="space-y-2">
+                  {results.warnings.map((warning: string, i: number) => (
+                    <div
+                      key={i}
+                      className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg px-3 py-2.5 text-sm text-yellow-300"
+                    >
+                      {warning}
+                    </div>
+                  ))}
+                </div>
+              )}
 
               {results.auto_sync && results.auto_sync.confidence > 0.3 && (
                 <div className="text-center text-xs text-muted-foreground">
