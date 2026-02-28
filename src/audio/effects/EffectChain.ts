@@ -131,6 +131,9 @@ export class EffectChain {
   /**
    * Rebuild the audio routing between inputNode and outputNode.
    * Only enabled effects are inserted; disabled ones are bypassed.
+   *
+   * Uses Tone.connect() for native↔Tone.js interop — native AudioNode.connect()
+   * does NOT accept Tone.js ToneAudioNode objects (throws "Overload resolution failed").
    */
   private rebuildChain(): void {
     // Disconnect everything from inputNode
@@ -153,16 +156,20 @@ export class EffectChain {
       return
     }
 
-    // Connect: inputNode → first effect
-    this.inputNode.connect(chain[0].input)
+    // toneModule.connect() resolves both native AudioNodes and Tone.js ToneAudioNodes
+    // to their underlying native nodes before calling the native connect().
+    if (!toneModule) return
 
-    // Chain effects together
+    // Native PannerNode → first Tone.js effect
+    toneModule.connect(this.inputNode, chain[0])
+
+    // Chain Tone.js effects together
     for (let i = 0; i < chain.length - 1; i++) {
       chain[i].connect(chain[i + 1])
     }
 
-    // Last effect → outputNode (native AnalyserNode)
-    chain[chain.length - 1].connect(this.outputNode)
+    // Last Tone.js effect → native AnalyserNode
+    toneModule.connect(chain[chain.length - 1], this.outputNode)
   }
 
   /** Clean up all Tone.js nodes. */
