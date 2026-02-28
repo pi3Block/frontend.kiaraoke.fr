@@ -891,21 +891,36 @@ export default function AppPage() {
       await api.uploadRecording(sessionId, audioBlob);
       setStatus("analyzing");
 
-      // Retry startAnalysis up to 3 times (API may be restarting)
-      let analysisResponse;
-      for (let attempt = 0; attempt < 3; attempt++) {
+      // Start analysis — if the response is lost (proxy timeout),
+      // recover by polling the session status from the backend.
+      try {
+        const analysisResponse = await api.startAnalysis(sessionId);
+        setAnalysisTaskId(analysisResponse.task_id);
+      } catch (startErr) {
+        // The backend may have received the request and queued the task
+        // even though the response was lost. Check session status.
+        console.warn("[Analysis] startAnalysis failed, checking session:", startErr);
+        await new Promise((r) => setTimeout(r, 2000));
         try {
-          analysisResponse = await api.startAnalysis(sessionId);
-          break;
-        } catch (retryErr) {
-          if (attempt < 2) {
-            await new Promise((r) => setTimeout(r, 2000 * (attempt + 1)));
+          const sessionStatus = await api.getSessionStatus(sessionId);
+          if (sessionStatus.status === "completed") {
+            // Already done — fetch results directly
+            const analysisStatus = await api.getAnalysisStatus(sessionId);
+            if (analysisStatus.results) {
+              setResults(analysisStatus.results);
+            }
+          } else if (sessionStatus.status === "analyzing") {
+            // Backend did process it — stay in analyzing mode, polling will pick it up
+            console.info("[Analysis] Backend confirmed analyzing, continuing...");
           } else {
-            throw retryErr;
+            // Backend didn't process it — retry once
+            const retryResponse = await api.startAnalysis(sessionId);
+            setAnalysisTaskId(retryResponse.task_id);
           }
+        } catch {
+          throw startErr; // Both attempts failed, surface original error
         }
       }
-      setAnalysisTaskId(analysisResponse!.task_id);
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "Erreur lors de l'envoi",
