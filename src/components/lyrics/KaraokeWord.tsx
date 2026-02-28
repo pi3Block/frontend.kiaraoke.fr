@@ -94,9 +94,9 @@ export const KaraokeWord = memo(function KaraokeWord({
       className="relative inline-block"
       animate={{
         textShadow: e > 0
-          ? `0 0 ${Math.round(e * 30)}px rgba(34, 197, 94, ${(0.4 + e * 0.5).toFixed(2)}), 0 0 ${Math.round(e * 60)}px rgba(34, 197, 94, ${(e * 0.25).toFixed(2)})`
+          ? `0 0 ${Math.round(e * 50)}px rgba(34, 197, 94, ${(0.5 + e * 0.5).toFixed(2)}), 0 0 ${Math.round(e * 100)}px rgba(34, 197, 94, ${(e * 0.35).toFixed(2)})`
           : '0 0 0px rgba(34, 197, 94, 0)',
-        scale: 1 + e * 0.06,
+        scale: 1 + e * 0.12,
       }}
       transition={{
         textShadow: ENERGY_SPRING,
