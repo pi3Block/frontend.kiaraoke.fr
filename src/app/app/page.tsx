@@ -525,7 +525,12 @@ export default function AppPage() {
         case "session_status":
           setReferenceStatus(event.data.reference_status as string);
           if (event.data.reference_status === "ready") {
-            setStatus("ready");
+            // Only transition to "ready" if we're still preparing/downloading.
+            // Do NOT overwrite "recording", "uploading", "analyzing", or "results".
+            const currentStatus = useSessionStore.getState().status;
+            if (currentStatus === "preparing" || currentStatus === "downloading") {
+              setStatus("ready");
+            }
           } else if (event.data.reference_status === "needs_fallback") {
             setStatus("needs_fallback");
           } else if (event.data.reference_status === "error") {
