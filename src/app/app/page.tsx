@@ -1297,6 +1297,7 @@ export default function AppPage() {
                       onStateChange={handleYoutubeStateChange}
                       onDurationChange={handleYoutubeDurationChange}
                       onControlsReady={handleYoutubeControlsReady}
+                      disableInteraction={status === "recording"}
                     />
                     {flowBar}
                     {status === "recording" && (
@@ -1622,6 +1623,7 @@ export default function AppPage() {
                     onStateChange={handleYoutubeStateChange}
                     onDurationChange={handleYoutubeDurationChange}
                     onControlsReady={handleYoutubeControlsReady}
+                    disableInteraction
                   />
                   {flowBar}
                 </>
