@@ -20,7 +20,8 @@ import { useAudioRecorder } from "@/hooks/useAudioRecorder";
 import { usePitchDetection } from "@/hooks/usePitchDetection";
 import { useWordTimestamps } from "@/hooks/useWordTimestamps";
 import { useFlowEnvelope } from "@/hooks/useFlowEnvelope";
-import { useFlowVisualization } from "@/hooks/useFlowVisualization";
+import { FlowBar } from "@/components/lyrics/FlowBar";
+import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
 import { useOrientation } from "@/hooks/useOrientation";
 import { useSSE, type SSEEvent } from "@/hooks/useSSE";
 import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
@@ -242,12 +243,8 @@ export default function AppPage() {
 
   // Flow visualization — vocal energy envelope
   const { status: flowEnvelopeStatus, getEnergyAtTime } = useFlowEnvelope(youtubeMatch?.id || null);
-  const flowState = useFlowVisualization({
-    getEnergyAtTime,
-    envelopeReady: flowEnvelopeStatus === 'found',
-    currentTime: playbackTime,
-    isPlaying: isVideoPlaying,
-  });
+  const prefersReducedMotion = usePrefersReducedMotion();
+  const flowEnvelopeReady = flowEnvelopeStatus === 'found';
 
   // YouTube player imperative controls (for TransportBar sync)
   const [youtubeControls, setYoutubeControls] =
@@ -1005,7 +1002,6 @@ export default function AppPage() {
     offset: lyricsOffset,
     onOffsetChange: handleOffsetChange,
     showOffsetControls: true,
-    flowState,
   };
 
   // Reusable lyrics mode toggle (karaoke / line / teleprompter)
@@ -1048,6 +1044,18 @@ export default function AppPage() {
         <span>🔄</span>
       </button>
     </div>
+  ) : null;
+
+  // Reusable FlowBar element — placed under video, self-contained rAF loop, zero re-renders
+  const flowBar = flowEnvelopeReady ? (
+    <FlowBar
+      getEnergyAtTime={getEnergyAtTime}
+      envelopeReady
+      currentTime={playbackTime}
+      isPlaying={isVideoPlaying}
+      reducedMotion={prefersReducedMotion}
+      className="rounded-b-lg"
+    />
   ) : null;
 
   // ─── NON-UNIFIED STATES (selecting / needs_fallback) ────────────────────────
@@ -1155,7 +1163,9 @@ export default function AppPage() {
             onStateChange={handleYoutubeStateChange}
             onControlsReady={handleYoutubeControlsReady}
             onDurationChange={handleYoutubeDurationChange}
-            flowState={flowState}
+            getEnergyAtTime={getEnergyAtTime}
+            flowEnvelopeReady={flowEnvelopeReady}
+            reducedMotion={prefersReducedMotion}
             isRecording={status === "recording"}
             recordingDuration={
               status === "recording" ? recordingDuration : undefined
@@ -1288,6 +1298,7 @@ export default function AppPage() {
                       onDurationChange={handleYoutubeDurationChange}
                       onControlsReady={handleYoutubeControlsReady}
                     />
+                    {flowBar}
                     {status === "recording" && (
                       <PitchIndicator pitchData={pitchData} />
                     )}
@@ -1531,13 +1542,16 @@ export default function AppPage() {
           {status === "ready" && (
             <div className="w-full max-w-md space-y-4">
               {youtubeMatch && (
-                <YouTubePlayer
-                  video={youtubeMatch}
-                  onTimeUpdate={handleYoutubeTimeUpdate}
-                  onStateChange={handleYoutubeStateChange}
-                  onDurationChange={handleYoutubeDurationChange}
-                  onControlsReady={handleYoutubeControlsReady}
-                />
+                <>
+                  <YouTubePlayer
+                    video={youtubeMatch}
+                    onTimeUpdate={handleYoutubeTimeUpdate}
+                    onStateChange={handleYoutubeStateChange}
+                    onDurationChange={handleYoutubeDurationChange}
+                    onControlsReady={handleYoutubeControlsReady}
+                  />
+                  {flowBar}
+                </>
               )}
 
               <div className="bg-green-500/20 border border-green-500 rounded-lg p-4 text-center">
@@ -1587,13 +1601,16 @@ export default function AppPage() {
               <PitchIndicator pitchData={pitchData} />
 
               {youtubeMatch && (
-                <YouTubePlayer
-                  video={youtubeMatch}
-                  onTimeUpdate={handleYoutubeTimeUpdate}
-                  onStateChange={handleYoutubeStateChange}
-                  onDurationChange={handleYoutubeDurationChange}
-                  onControlsReady={handleYoutubeControlsReady}
-                />
+                <>
+                  <YouTubePlayer
+                    video={youtubeMatch}
+                    onTimeUpdate={handleYoutubeTimeUpdate}
+                    onStateChange={handleYoutubeStateChange}
+                    onDurationChange={handleYoutubeDurationChange}
+                    onControlsReady={handleYoutubeControlsReady}
+                  />
+                  {flowBar}
+                </>
               )}
 
               <button
